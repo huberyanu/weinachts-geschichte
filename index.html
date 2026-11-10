@@ -3,29 +3,184 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Audio abspielen</title>
+  <meta name="theme-color" content="#f6f3ed">
+  <title>Der Weihnachtsmann in Meisterschwanden</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #26342d;
+      background: #f6f3ed;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: radial-gradient(ellipse at 50% 0%, #fffdf8 0%, #f6f3ed 70%);
+    }
+
+    main { width: min(100%, 520px); }
+
+    .player {
+      padding: clamp(24px, 6vw, 40px);
+      border: 1px solid #e6e1d7;
+      border-radius: 20px;
+      background: #fffefa;
+      box-shadow: 0 16px 48px rgb(46 51 39 / 8%);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: #718071;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.8rem, 7vw, 2.5rem);
+      font-weight: 500;
+      line-height: 1.15;
+    }
+
+    .subtitle {
+      margin: 12px 0 28px;
+      color: #72786f;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    audio { display: none; }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) 42px;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      color: #737b72;
+      font-size: 0.78rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      accent-color: #3e604b;
+      cursor: pointer;
+    }
+
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; }
+
+    button {
+      min-height: 48px;
+      border: 1px solid #3e604b;
+      border-radius: 999px;
+      padding: 0 22px;
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 650;
+      cursor: pointer;
+      transition: background-color 150ms ease, transform 150ms ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:focus-visible, input:focus-visible { outline: 3px solid #a6bda8; outline-offset: 3px; }
+    #play-pause { color: #fffefa; background: #3e604b; }
+    #play-pause:hover { background: #304d3b; }
+    #restart { color: #3e604b; background: transparent; }
+    #restart:hover { background: #edf1e9; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
 </head>
 <body>
-  <button id="play-pause" type="button">Abspielen</button>
-  <audio id="audio" preload="metadata" src="Der Weihnachtsmann in meisterschwanden.mp3"></audio>
-
+  <main>
+    <section class="player" aria-labelledby="title">
+      <p class="eyebrow">Eine Weihnachtsgeschichte</p>
+      <h1 id="title">Der Weihnachtsmann in Meisterschwanden</h1>
+      <p class="subtitle">Mach es dir gemütlich und hör dir die Geschichte an.</p>
+      <audio id="audio" preload="metadata" src="Der Weihnachtsmann in meisterschwanden.mp3"></audio>
+      <div class="timeline">
+        <span id="current-time">0:00</span>
+        <input id="seek" type="range" min="0" max="100" value="0" aria-label="Wiedergabeposition" disabled>
+        <span id="duration">0:00</span>
+      </div>
+      <div class="controls">
+        <button id="play-pause" type="button" aria-label="Audio abspielen" aria-pressed="false">Abspielen</button>
+        <button id="restart" type="button">Von vorne abspielen</button>
+      </div>
+    </section>
+  </main>
   <script>
     const audio = document.getElementById("audio");
-    const button = document.getElementById("play-pause");
+    const playPauseButton = document.getElementById("play-pause");
+    const restartButton = document.getElementById("restart");
+    const seek = document.getElementById("seek");
+    const currentTime = document.getElementById("current-time");
+    const duration = document.getElementById("duration");
 
-    button.addEventListener("click", async () => {
-      if (audio.paused) {
+    function formatTime(seconds) {
+      if (!Number.isFinite(seconds)) return "0:00";
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = Math.floor(seconds % 60).toString().padStart(2, "0");
+      return minutes + ":" + remainingSeconds;
+    }
+
+    function updatePlayButton() {
+      const isPlaying = !audio.paused && !audio.ended;
+      playPauseButton.textContent = isPlaying ? "Pause" : "Abspielen";
+      playPauseButton.setAttribute("aria-label", isPlaying ? "Audio pausieren" : "Audio abspielen");
+      playPauseButton.setAttribute("aria-pressed", String(isPlaying));
+    }
+
+    function updateProgress() {
+      currentTime.textContent = formatTime(audio.currentTime);
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        seek.value = String((audio.currentTime / audio.duration) * 100);
+      }
+    }
+
+    audio.addEventListener("loadedmetadata", () => {
+      duration.textContent = formatTime(audio.duration);
+      seek.disabled = false;
+      updateProgress();
+    });
+    audio.addEventListener("timeupdate", updateProgress);
+    audio.addEventListener("play", updatePlayButton);
+    audio.addEventListener("pause", updatePlayButton);
+    audio.addEventListener("ended", updatePlayButton);
+
+    playPauseButton.addEventListener("click", async () => {
+      if (audio.paused || audio.ended) {
         if (audio.ended) audio.currentTime = 0;
         await audio.play();
-        button.textContent = "Pause";
       } else {
         audio.pause();
-        button.textContent = "Abspielen";
       }
     });
 
-    audio.addEventListener("ended", () => {
-      button.textContent = "Abspielen";
+    restartButton.addEventListener("click", async () => {
+      audio.currentTime = 0;
+      await audio.play();
+    });
+
+    seek.addEventListener("input", () => {
+      if (Number.isFinite(audio.duration)) {
+        audio.currentTime = (Number(seek.value) / 100) * audio.duration;
+      }
     });
   </script>
 </body>
