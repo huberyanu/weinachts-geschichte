@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audio abspielen</title>
+</head>
+<body>
+  <button id="play-pause" type="button">Abspielen</button>
+  <audio id="audio" preload="metadata" src="Der Weihnachtsmann in meisterschwanden.mp3"></audio>
+
+  <script>
+    const audio = document.getElementById("audio");
+    const button = document.getElementById("play-pause");
+
+    button.addEventListener("click", async () => {
+      if (audio.paused) {
+        if (audio.ended) audio.currentTime = 0;
+        await audio.play();
+        button.textContent = "Pause";
+      } else {
+        audio.pause();
+        button.textContent = "Abspielen";
+      }
+    });
+
+    audio.addEventListener("ended", () => {
+      button.textContent = "Abspielen";
+    });
+  </script>
+</body>
+</html>
